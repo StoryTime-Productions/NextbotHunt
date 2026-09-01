@@ -1,0 +1,31 @@
+name: ${NAME}
+version: ${VERSION}
+main: ${PACKAGE}.NextbotHunt
+api-version: "26.1"
+author: StoryTimeProductions
+description: Nextbot Hunt minigame for the StoryTime SMP — a relentless AI chaser hunts disguised hiders.
+
+commands:
+  nextbothunt:
+    description: Opens the Nextbot Hunt game lobby
+    usage: /nextbothunt [join|leave|status]
+    aliases: [nbhunt, nbhlobby]
+    permission: nextbothunt.play
+    permission-message: You don't have permission to use this command.
+
+permissions:
+  nextbothunt.play:
+    description: Allows access to /nextbothunt
+    default: true
+  nextbothunt.*:
+    description: Grants all Nextbot Hunt permissions
+    default: false
+    children:
+      nextbothunt.play: true
+
+# Not a hard `depend:` yet - nothing in the plugin calls LibsDisguises
+# APIs until the hider disguise mechanic (Phase C) is implemented. Switch
+# to `depend:` once that lands, since a missing hard dep would then break
+# real functionality rather than just being unused.
+softdepend:
+  - LibsDisguises

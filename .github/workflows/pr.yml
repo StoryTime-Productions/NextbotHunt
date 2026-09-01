@@ -1,0 +1,110 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+  merge_group:
+    types:
+      - checks_requested
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+        with:
+          java-version: 26
+
+      - name: Run Spotless
+        run: ./gradlew spotlessApply
+
+      - name: Build with Gradle
+        run: ./gradlew build --info
+
+      - name: Upload build results
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-results
+          path: ${{ github.workspace }}/build/libs/
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: ${{ github.workspace }}/build/reports/
+
+  smoke-boot:
+    name: Smoke-boot on a real Paper server
+    runs-on: ubuntu-latest
+    env:
+      PAPER_VERSION: '26.1.2'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+        with:
+          java-version: 26
+
+      - name: Build plugin jar
+        run: ./gradlew prepareSmokeTestPlugins --info
+
+      - name: Download a real Paper server jar
+        working-directory: build/smoke-test
+        run: |
+          set -euo pipefail
+          BUILD_INFO=$(curl -sf -H "User-Agent: NextbotHunt-CI (github-actions)" \
+            "https://fill.papermc.io/v3/projects/paper/versions/${PAPER_VERSION}/builds" \
+            | jq -c '[.[] | select(.channel == "STABLE")] | sort_by(.id) | last')
+          DOWNLOAD_URL=$(echo "$BUILD_INFO" | jq -r '.downloads["server:default"].url')
+          curl -sfL -H "User-Agent: NextbotHunt-CI (github-actions)" -o paper.jar "$DOWNLOAD_URL"
+          echo "eula=true" > eula.txt
+
+      - name: Boot server and confirm the plugin enables
+        working-directory: build/smoke-test
+        run: |
+          set -euo pipefail
+          java -Xmx1G -jar paper.jar --nogui > boot.log 2>&1 &
+          BOOT_PID=$!
+          for i in $(seq 1 60); do
+            if grep -qE "Done \(" boot.log; then
+              break
+            fi
+            if ! kill -0 "$BOOT_PID" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          kill -9 "$BOOT_PID" 2>/dev/null || true
+          cat boot.log
+          if ! grep -qE "Done \(" boot.log; then
+            echo "::error::Server never reached 'Done' - see log above."
+            exit 1
+          fi
+          if grep -qE "\[NextbotHunt\] .*(Error|Exception|Could not load)" boot.log; then
+            echo "::error::NextbotHunt logged an error during boot - see log above."
+            exit 1
+          fi
+          if ! grep -qE "\[NextbotHunt\] Enabling NextbotHunt" boot.log; then
+            echo "::error::NextbotHunt never reached its enable step - see log above."
+            exit 1
+          fi
+
+      - name: Upload boot log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-boot-log
+          path: ${{ github.workspace }}/build/smoke-test/boot.log

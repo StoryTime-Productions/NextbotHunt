@@ -1,0 +1,223 @@
+import com.github.spotbugs.snom.SpotBugsTask
+import java.text.SimpleDateFormat
+
+plugins {
+    id 'checkstyle'
+    id 'jacoco'
+    id "com.github.spotbugs" version "6.5.9"
+    id 'com.gradleup.shadow' version '9.5.1'
+    id 'java'
+    id 'com.diffplug.spotless' version '8.5.1'
+    id 'io.papermc.paperweight.userdev' version '2.0.0-beta.21'
+}
+
+group = "com.storytimeproductions.nextbothunt"
+
+static def getTime() {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd-HHmm")
+    sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return sdf.format(new Date()).toString()
+}
+
+String shortVersion = null
+if (hasProperty('ver')) {
+    if (ver.charAt(0) == "v") {
+        shortVersion = ver.substring(1).toUpperCase()
+    } else {
+        shortVersion = ver.toUpperCase()
+    }
+}
+
+int rcIdx
+if (shortVersion == null || shortVersion == "") {
+    version = getTime() + "-SNAPSHOT"
+} else if ((rcIdx = shortVersion.indexOf("-RC-")) != -1) {
+    version = shortVersion.substring(0, rcIdx) + "-SNAPSHOT"
+} else {
+    version = shortVersion
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(26)
+    }
+    sourceCompatibility = '25'
+    targetCompatibility = '25'
+}
+
+repositories {
+    maven {
+        name = 'papermc'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+        content {
+            includeModule("io.papermc.paper", "paper-api")
+            includeModule("io.papermc", "paperlib")
+            includeModule("net.md-5", "bungeecord-chat")
+        }
+    }
+    maven {
+        name = 'minecraft'
+        url = 'https://libraries.minecraft.net'
+        content {
+            includeModule("com.mojang", "brigadier")
+        }
+    }
+    maven {
+        name 'libsdisguises'
+        url 'https://mvn.lib.co.nz/public'
+    }
+    maven {
+        name 'codemc'
+        url 'https://repo.codemc.io/repository/maven-public/'
+    }
+    mavenCentral()
+}
+
+dependencies {
+    paperweight.paperDevBundle('26.1.2.build.+')
+    compileOnly 'me.libraryaddict.disguises:libsdisguises:11.0.18'
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.8'
+    implementation 'io.papermc:paperlib:1.0.8'
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0'
+    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.8'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.0.0'
+    // mockbukkit-v26.2 targets the Paper 26.x line this plugin targets.
+    // NOTE: constructing a MockBukkit ServerMock against Paper 26.1.2/26.2
+    // currently throws (RegistryAccessMock fails to instantiate against
+    // Paper's newer registry bootstrap) - a known, currently-open upstream
+    // bug: https://github.com/MockBukkit/MockBukkit/issues/1595. Kept as a
+    // dependency so NextbotHuntTest compiles; the affected test is
+    // @Disabled until that's fixed upstream. Re-enable once it lands.
+    testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v26.2:4.116.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.0.0'
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+        rule {
+            limit {
+                // Floor is 0 while the one meaningful test is @Disabled
+                // (blocked on MockBukkit/MockBukkit#1595). Raise this once
+                // real tests run - see
+                // RalphDocs/NextbotHunt/specs/tech-stack-and-testing.md
+                minimum = 0.0
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+processResources {
+    // version is a fresh timestamp on every invocation, but Gradle has no way to know that
+    // unless it's declared as an input - without this, processResources gets marked UP-TO-DATE
+    // and the packaged plugin.yml silently keeps reporting a stale version.
+    inputs.property('version', version)
+    filesMatching("**/plugin.yml") {
+        expand(NAME: rootProject.name, VERSION: version, PACKAGE: project.group.toString())
+    }
+}
+
+checkstyle {
+    toolVersion = '10.20.1'
+    maxWarnings = 0
+}
+
+configurations.checkstyle {
+    resolutionStrategy.capabilitiesResolution.withCapability("com.google.collections:google-collections") {
+        select("com.google.guava:guava:23.0")
+    }
+}
+
+tasks.withType(Checkstyle).configureEach {
+    reports {
+        xml.required = false
+        html.required = true
+    }
+}
+
+tasks.withType(SpotBugsTask).configureEach {
+    classes = files("$project.buildDir/intermediates/javac")
+
+    reports.create("html") {
+        required = true
+    }
+    reports.create("xml") {
+        required = false
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    relocate 'io.papermc.lib', 'shadow.io.papermc.paperlib'
+    minimize()
+}
+
+jar.enabled = false
+assemble.dependsOn(shadowJar)
+
+spotless {
+    java {
+        googleJavaFormat()
+        target 'src/**/*.java'
+    }
+}
+
+if (System.getenv("CI") != null) {
+    tasks.named("spotlessJava").configure {
+        enabled = false
+    }
+}
+
+task formatCode {
+    dependsOn 'spotlessApply'
+}
+
+task checkFormat {
+    dependsOn 'spotlessCheck'
+}
+
+tasks.register('printProjectName') {
+    doLast {
+        println rootProject.name
+    }
+}
+
+tasks.register('release') {
+    dependsOn build
+
+    doLast {
+        if (!version.endsWith("-SNAPSHOT")) {
+            // Rename final JAR to trim off version information
+            shadowJar.archiveFile.get().getAsFile()
+                    .renameTo(layout.buildDirectory.get().toString() + File.separator + 'libs' + File.separator
+                            + rootProject.name + '.jar')
+        }
+    }
+}
+
+// Assembles a plugins/ folder (just this plugin's shaded jar - LibsDisguises
+// is a softdepend, and the Maven-published libsdisguises artifact is a
+// compile-only API stub with no plugin.yml, not a runnable server jar, so
+// it can't be automated here anyway) for the CI smoke-boot job to drop
+// onto a real headless Paper server and confirm the plugin enables
+// cleanly. See RalphDocs/NextbotHunt/specs/tech-stack-and-testing.md.
+tasks.register('prepareSmokeTestPlugins', Copy) {
+    dependsOn shadowJar
+    from(shadowJar.archiveFile)
+    into layout.buildDirectory.dir('smoke-test/plugins')
+}
