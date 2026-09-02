@@ -76,7 +76,10 @@ jobs:
         working-directory: build/smoke-test
         run: |
           set -euo pipefail
-          java -Xmx1G -jar paper.jar --nogui > boot.log 2>&1 &
+          # $JAVA_HOME (set by common-setup) is the JDK21 Gradle-runner
+          # JVM; Paper 26.1+ needs Java 25+ to actually boot, matching
+          # PropHunt's own dual-JDK dev-test pattern.
+          "$JAVA_HOME_26_X64/bin/java" -Xmx1G -jar paper.jar --nogui > boot.log 2>&1 &
           BOOT_PID=$!
           for i in $(seq 1 60); do
             if grep -qE "Done \(" boot.log; then
