@@ -80,7 +80,7 @@ dependencies {
     implementation 'io.papermc:paperlib:1.0.8'
     spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0'
     testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.8'
-    testImplementation 'org.junit.jupiter:junit-jupiter:6.0.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
     // mockbukkit-v26.2 targets the Paper 26.x line this plugin targets.
     // NOTE: constructing a MockBukkit ServerMock against Paper 26.1.2/26.2
     // currently throws (RegistryAccessMock fails to instantiate against
