@@ -1,0 +1,60 @@
+package com.storytimeproductions.nextbothunt.nextbot;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.bukkit.Location;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
+
+/** Owns active nextbot composites and ticks their body/skin position sync. */
+public class NextbotManager {
+
+  private final JavaPlugin plugin;
+  private final List<NextbotEntity> active = new ArrayList<>();
+  private BukkitTask tickTask;
+
+  /** Constructs a new NextbotManager for the given plugin instance. */
+  public NextbotManager(JavaPlugin plugin) {
+    this.plugin = plugin;
+  }
+
+  /** Starts the per-tick position-sync task. */
+  public void start() {
+    if (tickTask != null) {
+      return;
+    }
+    tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAll, 1L, 1L);
+  }
+
+  /** Cancels the tick task and removes all active nextbots. */
+  public void stop() {
+    if (tickTask != null) {
+      tickTask.cancel();
+      tickTask = null;
+    }
+    despawnAll();
+  }
+
+  /** Spawns a new nextbot at the given location. */
+  public NextbotEntity spawn(Location location) {
+    NextbotEntity nextbot = new NextbotEntity(location);
+    active.add(nextbot);
+    return nextbot;
+  }
+
+  /** Removes every active nextbot. */
+  public void despawnAll() {
+    active.forEach(NextbotEntity::remove);
+    active.clear();
+  }
+
+  /** Returns a snapshot of the currently active nextbots. */
+  public List<NextbotEntity> getActive() {
+    return List.copyOf(active);
+  }
+
+  private void tickAll() {
+    active.removeIf(n -> !n.isValid());
+    active.forEach(NextbotEntity::tick);
+  }
+}

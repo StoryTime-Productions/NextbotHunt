@@ -8,7 +8,7 @@ description: Nextbot Hunt minigame for the StoryTime SMP — a relentless AI cha
 commands:
   nextbothunt:
     description: Opens the Nextbot Hunt game lobby
-    usage: /nextbothunt [join|leave|status]
+    usage: /nextbothunt [join|leave|status|debugspawn]
     aliases: [nbhunt, nbhlobby]
     permission: nextbothunt.play
     permission-message: You don't have permission to use this command.
@@ -17,11 +17,15 @@ permissions:
   nextbothunt.play:
     description: Allows access to /nextbothunt
     default: true
+  nextbothunt.debug:
+    description: Allows access to /nextbothunt debugspawn
+    default: op
   nextbothunt.*:
     description: Grants all Nextbot Hunt permissions
     default: false
     children:
       nextbothunt.play: true
+      nextbothunt.debug: true
 
 # Not a hard `depend:` yet - nothing in the plugin calls LibsDisguises
 # APIs until the hider disguise mechanic (Phase C) is implemented. Switch
