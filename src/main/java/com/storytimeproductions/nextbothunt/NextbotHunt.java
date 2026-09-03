@@ -2,6 +2,7 @@ package com.storytimeproductions.nextbothunt;
 
 import com.storytimeproductions.nextbothunt.lobby.LobbyManager;
 import com.storytimeproductions.nextbothunt.nextbot.NextbotManager;
+import com.storytimeproductions.nextbothunt.round.RoundManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /** Entry point for the Nextbot Hunt plugin. */
@@ -9,15 +10,17 @@ public class NextbotHunt extends JavaPlugin {
 
   private NextbotManager nextbotManager;
   private LobbyManager lobbyManager;
+  private RoundManager roundManager;
 
   @Override
   public void onEnable() {
     nextbotManager = new NextbotManager(this);
     nextbotManager.start();
     lobbyManager = new LobbyManager();
+    roundManager = new RoundManager(this, lobbyManager, nextbotManager);
     var command = getCommand("nextbothunt");
     if (command != null) {
-      command.setExecutor(new NextbotHuntCommand(nextbotManager, lobbyManager));
+      command.setExecutor(new NextbotHuntCommand(nextbotManager, lobbyManager, roundManager));
     }
     getLogger().info("Nextbot Hunt enabled.");
   }
@@ -36,5 +39,9 @@ public class NextbotHunt extends JavaPlugin {
 
   public LobbyManager getLobbyManager() {
     return lobbyManager;
+  }
+
+  public RoundManager getRoundManager() {
+    return roundManager;
   }
 }
