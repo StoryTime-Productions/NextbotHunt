@@ -8,7 +8,7 @@ description: Nextbot Hunt minigame for the StoryTime SMP — a relentless AI cha
 commands:
   nextbothunt:
     description: Opens the Nextbot Hunt game lobby
-    usage: /nextbothunt [join|leave|status|debugspawn]
+    usage: /nextbothunt [join|leave|ready|status|debugspawn]
     aliases: [nbhunt, nbhlobby]
     permission: nextbothunt.play
     permission-message: You don't have permission to use this command.
