@@ -1,5 +1,6 @@
 package com.storytimeproductions.nextbothunt.nextbot;
 
+import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,12 +23,14 @@ public class NextbotEntity {
   private static final float SKIN_SCALE = 2.0f;
   private static final float SKIN_Y_OFFSET = 1.0f;
   private static final int TELEPORT_DURATION_TICKS = 3;
+  private static final double TOUCH_RADIUS = 1.0;
 
   private final Zombie brain;
   private final Interaction body;
   private final ItemDisplay skin;
   private Player target;
   private int targetLostTicks;
+  private Consumer<Player> onTouch = player -> {};
 
   /** Spawns the composite's three entities at the given location. */
   public NextbotEntity(Location spawnLocation, JavaPlugin plugin) {
@@ -83,6 +86,17 @@ public class NextbotEntity {
     body.teleport(loc);
     skin.setTeleportDuration(TELEPORT_DURATION_TICKS);
     skin.teleport(loc);
+
+    for (Player player : body.getWorld().getPlayers()) {
+      if (body.getLocation().distance(player.getLocation()) <= TOUCH_RADIUS) {
+        onTouch.accept(player);
+      }
+    }
+  }
+
+  /** Sets the callback invoked (every tick while in range) when a player touches the body. */
+  public void setOnTouch(Consumer<Player> onTouch) {
+    this.onTouch = onTouch;
   }
 
   public boolean isValid() {
