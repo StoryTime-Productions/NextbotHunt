@@ -63,10 +63,6 @@ repositories {
         }
     }
     maven {
-        name 'libsdisguises'
-        url 'https://mvn.lib.co.nz/public'
-    }
-    maven {
         name 'codemc'
         url 'https://repo.codemc.io/repository/maven-public/'
     }
@@ -75,7 +71,6 @@ repositories {
 
 dependencies {
     paperweight.paperDevBundle('26.1.2.build.+')
-    compileOnly 'me.libraryaddict.disguises:libsdisguises:11.0.18'
     compileOnly 'com.github.spotbugs:spotbugs-annotations:4.10.4'
     implementation 'io.papermc:paperlib:1.0.8'
     spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0'
@@ -210,12 +205,9 @@ tasks.register('release') {
     }
 }
 
-// Assembles a plugins/ folder (just this plugin's shaded jar - LibsDisguises
-// is a softdepend, and the Maven-published libsdisguises artifact is a
-// compile-only API stub with no plugin.yml, not a runnable server jar, so
-// it can't be automated here anyway) for the CI smoke-boot job to drop
-// onto a real headless Paper server and confirm the plugin enables
-// cleanly. See RalphDocs/NextbotHunt/specs/tech-stack-and-testing.md.
+// Assembles a plugins/ folder (just this plugin's shaded jar) for the CI
+// smoke-boot job to drop onto a real headless Paper server and confirm the
+// plugin enables cleanly. See RalphDocs/NextbotHunt/specs/tech-stack-and-testing.md.
 tasks.register('prepareSmokeTestPlugins', Copy) {
     dependsOn shadowJar
     from(shadowJar.archiveFile)
