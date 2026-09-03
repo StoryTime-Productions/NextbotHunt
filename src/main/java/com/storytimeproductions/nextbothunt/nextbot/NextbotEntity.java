@@ -6,27 +6,38 @@ import org.bukkit.Material;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 /** Brain/body/skin composite for one nextbot - see specs/nextbot-entity-design.md. */
 public class NextbotEntity {
 
   private static final float BODY_WIDTH = 0.8f;
   private static final float BODY_HEIGHT = 1.9f;
+  private static final float SKIN_SCALE = 2.0f;
+  private static final float SKIN_Y_OFFSET = 1.0f;
   private static final int TELEPORT_DURATION_TICKS = 3;
 
   private final Zombie brain;
   private final Interaction body;
   private final ItemDisplay skin;
+  private Player target;
+  private int targetLostTicks;
 
   /** Spawns the composite's three entities at the given location. */
-  public NextbotEntity(Location spawnLocation) {
+  public NextbotEntity(Location spawnLocation, JavaPlugin plugin) {
     this.brain = spawnLocation.getWorld().spawn(spawnLocation, Zombie.class, this::configureBrain);
     this.body =
         spawnLocation.getWorld().spawn(spawnLocation, Interaction.class, this::configureBody);
     this.skin =
         spawnLocation.getWorld().spawn(spawnLocation, ItemDisplay.class, this::configureSkin);
+    Bukkit.getMobGoals().addGoal(brain, 0, new NextbotTargetGoal(this, plugin));
+    Bukkit.getMobGoals().addGoal(brain, 0, new NextbotChaseGoal(this, plugin));
   }
 
   private void configureBrain(Zombie zombie) {
@@ -50,12 +61,23 @@ public class NextbotEntity {
     display.setBillboard(Display.Billboard.CENTER);
     display.setItemStack(new ItemStack(Material.PAPER));
     display.setPersistent(true);
+    display.setTransformation(
+        new Transformation(
+            new Vector3f(0, SKIN_Y_OFFSET, 0),
+            new AxisAngle4f(0, 0, 0, 1),
+            new Vector3f(SKIN_SCALE, SKIN_SCALE, SKIN_SCALE),
+            new AxisAngle4f(0, 0, 0, 1)));
   }
 
   /** Syncs body/skin position to the brain. Call once per tick. */
   public void tick() {
     if (!brain.isValid()) {
       return;
+    }
+    // setShouldBurnInDay(false) alone doesn't stop daylight ignition on this build - see
+    // specs/nextbot-entity-design.md. Extinguish defensively every tick instead.
+    if (brain.getFireTicks() > 0) {
+      brain.setFireTicks(0);
     }
     Location loc = brain.getLocation();
     body.teleport(loc);
@@ -73,6 +95,22 @@ public class NextbotEntity {
 
   public Interaction getBody() {
     return body;
+  }
+
+  public Player getTarget() {
+    return target;
+  }
+
+  public void setTarget(Player target) {
+    this.target = target;
+  }
+
+  public int getTargetLostTicks() {
+    return targetLostTicks;
+  }
+
+  public void setTargetLostTicks(int targetLostTicks) {
+    this.targetLostTicks = targetLostTicks;
   }
 
   /** Removes all three entities. */

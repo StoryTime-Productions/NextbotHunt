@@ -37,7 +37,7 @@ public class NextbotManager {
 
   /** Spawns a new nextbot at the given location. */
   public NextbotEntity spawn(Location location) {
-    NextbotEntity nextbot = new NextbotEntity(location);
+    NextbotEntity nextbot = new NextbotEntity(location, plugin);
     active.add(nextbot);
     return nextbot;
   }
