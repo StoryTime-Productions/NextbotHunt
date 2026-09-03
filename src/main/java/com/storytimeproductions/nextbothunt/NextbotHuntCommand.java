@@ -3,6 +3,7 @@ package com.storytimeproductions.nextbothunt;
 import com.storytimeproductions.nextbothunt.lobby.HiderPlayerData;
 import com.storytimeproductions.nextbothunt.lobby.LobbyManager;
 import com.storytimeproductions.nextbothunt.nextbot.NextbotManager;
+import com.storytimeproductions.nextbothunt.round.RoundManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
@@ -10,16 +11,19 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-/** Handles /nextbothunt: join/leave/ready/status the lobby, plus the debugspawn dev command. */
+/** Handles /nextbothunt: join/leave/ready/start/status the lobby, plus the debugspawn dev cmd. */
 public class NextbotHuntCommand implements CommandExecutor {
 
   private final NextbotManager nextbotManager;
   private final LobbyManager lobbyManager;
+  private final RoundManager roundManager;
 
   /** Constructs a new command handler backed by the given managers. */
-  public NextbotHuntCommand(NextbotManager nextbotManager, LobbyManager lobbyManager) {
+  public NextbotHuntCommand(
+      NextbotManager nextbotManager, LobbyManager lobbyManager, RoundManager roundManager) {
     this.nextbotManager = nextbotManager;
     this.lobbyManager = lobbyManager;
+    this.roundManager = roundManager;
   }
 
   @Override
@@ -32,7 +36,8 @@ public class NextbotHuntCommand implements CommandExecutor {
 
     if (args.length != 1) {
       player.sendMessage(
-          Component.text("Usage: /nextbothunt [join|leave|ready|status]", NamedTextColor.YELLOW));
+          Component.text(
+              "Usage: /nextbothunt [join|leave|ready|start|status]", NamedTextColor.YELLOW));
       return true;
     }
 
@@ -40,12 +45,13 @@ public class NextbotHuntCommand implements CommandExecutor {
       case "join" -> handleJoin(player);
       case "leave" -> handleLeave(player);
       case "ready" -> handleReady(player);
+      case "start" -> roundManager.startRound(player);
       case "status" -> handleStatus(player);
       case "debugspawn" -> handleDebugSpawn(player);
       default ->
           player.sendMessage(
               Component.text(
-                  "Usage: /nextbothunt [join|leave|ready|status]", NamedTextColor.YELLOW));
+                  "Usage: /nextbothunt [join|leave|ready|start|status]", NamedTextColor.YELLOW));
     }
     return true;
   }
@@ -94,7 +100,8 @@ public class NextbotHuntCommand implements CommandExecutor {
                 + lobbyManager.getAllPlayerData().size()
                 + " players ready (need "
                 + LobbyManager.MINIMUM_PLAYERS
-                + " minimum, all in lobby ready).",
+                + " minimum, all in lobby ready). Round state: "
+                + roundManager.getState(),
             NamedTextColor.AQUA));
   }
 
