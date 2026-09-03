@@ -3,7 +3,7 @@ version: ${VERSION}
 main: ${PACKAGE}.NextbotHunt
 api-version: "26.1"
 author: StoryTimeProductions
-description: Nextbot Hunt minigame for the StoryTime SMP — a relentless AI chaser hunts disguised hiders.
+description: Nextbot Hunt minigame for the StoryTime SMP — a relentless AI chaser hunts hiders.
 
 commands:
   nextbothunt:
@@ -26,10 +26,3 @@ permissions:
     children:
       nextbothunt.play: true
       nextbothunt.debug: true
-
-# Not a hard `depend:` yet - nothing in the plugin calls LibsDisguises
-# APIs until the hider disguise mechanic (Phase C) is implemented. Switch
-# to `depend:` once that lands, since a missing hard dep would then break
-# real functionality rather than just being unused.
-softdepend:
-  - LibsDisguises
