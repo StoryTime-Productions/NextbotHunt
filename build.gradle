@@ -84,7 +84,7 @@ dependencies {
     // dependency so NextbotHuntTest compiles; the affected test is
     // @Disabled until that's fixed upstream. Re-enable once it lands.
     testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v26.2:4.116.1'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.0.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.1.3'
 }
 
 test {
