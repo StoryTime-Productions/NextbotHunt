@@ -83,7 +83,7 @@ dependencies {
     // bug: https://github.com/MockBukkit/MockBukkit/issues/1595. Kept as a
     // dependency so NextbotHuntTest compiles; the affected test is
     // @Disabled until that's fixed upstream. Re-enable once it lands.
-    testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v26.2:4.116.1'
+    testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v26.2:4.117.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.1.3'
 }
 
